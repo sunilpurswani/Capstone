@@ -1,158 +1,168 @@
-# NANDA Multi-Agent System - Code Review Guide
+# Demo Guide
 
-## Overview
-NANDA is a multi-agent financial intelligence system with two specialized agents:
-- **Financial Advisor Agent** - Analyzes stocks using yfinance and Claude API
-- **Report Summarizer Agent** - Generates comprehensive investment reports
+This guide covers the main ways to review and run the financial multi-agent system locally.
+
+## Core Agents
+
+The financial workflow includes several specialized agents under:
+
+```text
+streamlined-adapter/examples/domain_agents/
+```
+
+Key files:
+
+- `financial_advisor_agent.py` — stock and market analysis
+- `report_summarizer_agent.py` — structured report generation
+- `intelligent_report_agent.py` — tool-enabled financial analysis and agent coordination
+- `risk_assessment_agent.py` — investment risk analysis
+- `web_ui.py` — web interface components
 
 ## Architecture
-- **Framework:** Custom NANDA framework built on python-a2a protocol
-- **Deployment:** Linode cloud server (Ubuntu 22.04)
-- **Database:** MongoDB Atlas for agent metadata and telemetry
-- **AI:** Anthropic Claude API (Sonnet 4)
 
----
+```text
+User Request
+     |
+     v
+Intelligent / Report Agent
+     |
+     |-- Market-data tools --> yfinance
+     |
+     |-- A2A communication --> Risk Assessment Agent
+     |
+     v
+Financial Analysis
+     |
+     v
+Structured Report
+```
 
-## Option 1: Test Live Deployed Agents (Easiest)
+## Local Setup
 
-**Note:** Agents may not be running 24/7 to conserve API costs.
+### 1. Clone the repository
 
-If agents are live, run:
 ```bash
-./demo_agents.sh
+git clone https://github.com/sunilpurswani/Capstone.git
+cd Capstone
 ```
 
-Or test manually:
+### 2. Create a virtual environment
+
 ```bash
-# Health check
-curl http://97.107.135.236:6001/health
-curl http://97.107.135.236:6002/health
-
-# Analyze stocks
-curl -X POST http://97.107.135.236:6001/a2a \
-  -H "Content-Type: application/json" \
-  -d '{"content":{"text":"single: AAPL 3mo","type":"text"},"role":"user","conversation_id":"test"}'
+python -m venv .venv
 ```
 
-**Web Interface:**
-- Financial Advisor: http://97.107.135.236:6001/
-- Report Summarizer: http://97.107.135.236:6002/
+Activate it:
 
----
-
-## Option 2: Run Locally (Full Setup Required)
-
-### Prerequisites
-- Python 3.10+
-- Anthropic API key
-- MongoDB Atlas account (or local MongoDB)
-
-### Setup Steps
-
-1. **Clone the repository**
 ```bash
-git clone https://github.com/aparey/capstone.git
-cd capstone/streamlined-adapter
+# macOS / Linux
+source .venv/bin/activate
+
+# Windows
+.venv\Scripts\activate
 ```
 
-2. **Create virtual environment**
+### 3. Install dependencies
+
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-3. **Install dependencies**
-```bash
-pip install anthropic flask requests pyyaml python-a2a pymongo yfinance python-dotenv pandas numpy
-```
+### 4. Configure environment variables
 
-4. **Configure environment**
-Create `.env` file in `streamlined-adapter/` directory:
-```
-ANTHROPIC_API_KEY=your-api-key-here
+Create the environment variables required by the agents you plan to run:
+
+```text
+ANTHROPIC_API_KEY=your-api-key
 MONGODB_URI=your-mongodb-connection-string
 ```
 
-5. **Run the agents**
+Some components may not require MongoDB when telemetry or persistence is disabled.
 
-Terminal 1 - Financial Advisor:
+## Running the Financial Advisor and Report Summarizer
+
+Open separate terminals and navigate to:
+
 ```bash
-cd examples/domain_agents
-python3 financial_advisor_agent.py
+cd streamlined-adapter/examples/domain_agents
 ```
 
-Terminal 2 - Report Summarizer:
+Run the Financial Advisor Agent:
+
 ```bash
-cd examples/domain_agents
-python3 report_summarizer_agent.py
+python financial_advisor_agent.py
 ```
 
-6. **Test locally**
+Run the Report Summarizer Agent:
+
 ```bash
-# Financial Advisor (default port 6001)
+python report_summarizer_agent.py
+```
+
+Typical local ports are:
+
+- Financial Advisor: `6001`
+- Report Summarizer: `6002`
+
+## Example Requests
+
+Financial Advisor:
+
+```bash
 curl -X POST http://localhost:6001/a2a \
   -H "Content-Type: application/json" \
   -d '{"content":{"text":"single: AAPL 3mo","type":"text"},"role":"user","conversation_id":"local-test"}'
+```
 
-# Report Summarizer (default port 6002)
+Report Summarizer:
+
+```bash
 curl -X POST http://localhost:6002/a2a \
   -H "Content-Type: application/json" \
   -d '{"content":{"text":"summarize: AAPL,GOOGL 3mo","type":"text"},"role":"user","conversation_id":"local-test"}'
 ```
 
----
+## Risk Assessment Agent
 
-## Option 3: Code Review Without Running
+The Risk Assessment Agent is designed to receive stock information from another agent through A2A communication and return a specialized risk analysis.
 
-### Key Files to Review
+Run it from the domain-agents directory:
 
-1. **Agent Implementation**
-   - `streamlined-adapter/examples/domain_agents/financial_advisor_agent.py`
-   - `streamlined-adapter/examples/domain_agents/report_summarizer_agent.py`
-
-2. **Core Framework**
-   - `streamlined-adapter/nanda_core/core/adapter.py` - NANDA wrapper class
-   - `streamlined-adapter/nanda_core/core/agent_bridge.py` - A2A protocol bridge
-
-3. **Configuration**
-   - `my-nanda-agents-config.json` - Agent deployment configuration
-   - `deploy-to-linode-test.sh` - Deployment automation script
-
-### Architecture Highlights
-
-**Agent Communication Flow:**
-```
-User Request
-    ↓
-Report Summarizer Agent (Port 6002)
-    ↓ (A2A Protocol)
-Financial Advisor Agent (Port 6001)
-    ↓ (yfinance API)
-Real-time Stock Data
-    ↓
-Financial Analysis
-    ↓ (A2A Response)
-Report Summarizer
-    ↓
-Comprehensive Report
+```bash
+python risk_assessment_agent.py
 ```
 
-**Technology Stack:**
-- Python 3.12
-- Anthropic Claude API (Sonnet 4.5)
-- python-a2a (Agent-to-Agent protocol)
-- yfinance (Stock market data)
-- Flask (Web server)
-- MongoDB Atlas (Data persistence)
+Its default local port is `6004`.
 
----
+## Quick Demo
 
-## Video Demo 
-https://drive.google.com/file/d/1Do5dqSGZRgCndO3Ctud6qP85QMXP3GQN/view?usp=sharing
+The repository includes additional demo and test files:
 
----
+```text
+demo.py
+demo_agents.sh
+test.py
+streamlined-adapter/examples/domain_agents/test_financial_system.py
+```
 
-## Contact
-For questions or to request live agent access:
-- Email: parey.a@northeastern.edu
-- Note: Agents run on-demand to manage API costs
+These can be used to inspect the end-to-end flow and validate local agent behavior.
+
+## Deployment
+
+The repository contains scripts used during cloud-deployment experiments, including:
+
+```text
+deploy-to-linode-test.sh
+my-nanda-agents-config.json
+```
+
+Deployment scripts may require environment-specific configuration before reuse.
+
+## Notes
+
+- External API keys are not stored in the repository.
+- Market-data requests require internet access.
+- Agent ports can be changed through the corresponding configuration or environment variables.
+- Cloud endpoints used during development are not assumed to remain permanently available.
+
+This project is for educational and analytical purposes only and is not financial advice.
